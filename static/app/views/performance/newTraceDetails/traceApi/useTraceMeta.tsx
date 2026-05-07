@@ -7,6 +7,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
 import {useDefaultMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
@@ -66,8 +67,12 @@ async function fetchSingleTraceMetaNew(
 ) {
   const url =
     type === 'eap'
-      ? `/organizations/${organization.slug}/trace-meta/${trace.traceSlug}/`
-      : `/organizations/${organization.slug}/events-trace-meta/${trace.traceSlug}/`;
+      ? getApiUrl('/organizations/$organizationIdOrSlug/trace-meta/$traceId/', {
+          path: {organizationIdOrSlug: organization.slug, traceId: trace.traceSlug},
+        })
+      : getApiUrl('/organizations/$organizationIdOrSlug/events-trace-meta/$traceId/', {
+          path: {organizationIdOrSlug: organization.slug, traceId: trace.traceSlug},
+        });
 
   const data = await api.requestPromise(url, {
     method: 'GET',
