@@ -5,11 +5,12 @@ import {PlatformIcon} from 'platformicons';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {useModal} from '@sentry/scraps/modal';
 import {Select} from '@sentry/scraps/select';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {closeModal, openConsoleModal, openModal} from 'sentry/actionCreators/modal';
+import {closeModal, openConsoleModal} from 'sentry/actionCreators/modal';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -90,6 +91,8 @@ function shouldSuggestFramework(platformKey: PlatformKey): boolean {
 }
 
 export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
+  const {openModal} = useModal();
+
   const organization = useOrganization();
   const {
     selectedRepository,

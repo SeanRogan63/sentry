@@ -12,7 +12,7 @@ import {useModal} from '@sentry/scraps/modal';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openConsoleModal, openModal} from 'sentry/actionCreators/modal';
+import {openConsoleModal} from 'sentry/actionCreators/modal';
 import {Access} from 'sentry/components/acl/access';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {List} from 'sentry/components/list';
@@ -137,6 +137,8 @@ function getSubmitTooltipText({
 }
 
 export function CreateProject() {
+  const {openModal} = useModal();
+
   const globalModal = useModal();
   const navigate = useNavigate();
   const organization = useOrganization();
@@ -419,7 +421,7 @@ export function CreateProject() {
         }
       );
     },
-    [configurePlatform, organization]
+    [configurePlatform, organization, openModal]
   );
 
   const debounceHandleProjectCreation = useMemo(
