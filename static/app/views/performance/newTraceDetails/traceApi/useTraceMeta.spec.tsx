@@ -89,6 +89,7 @@ describe('useTraceMeta', () => {
     expect(result.current).toEqual({
       data: undefined,
       errors: [],
+      isLoading: true,
       status: 'pending',
     });
 
@@ -112,6 +113,7 @@ describe('useTraceMeta', () => {
         },
       },
       errors: [],
+      isLoading: false,
       status: 'success',
     });
   });
@@ -177,6 +179,7 @@ describe('useTraceMeta', () => {
     expect(result.current).toEqual({
       data: undefined,
       errors: [],
+      isLoading: true,
       status: 'pending',
     });
 
@@ -201,6 +204,7 @@ describe('useTraceMeta', () => {
         uptime_checks: 0,
       },
       errors: [],
+      isLoading: false,
       status: 'success',
     });
   });
@@ -229,6 +233,7 @@ describe('useTraceMeta', () => {
     expect(result.current).toEqual({
       data: undefined,
       errors: [],
+      isLoading: true,
       status: 'pending',
     });
 
@@ -245,6 +250,7 @@ describe('useTraceMeta', () => {
         span_count_map: {},
       },
       errors: [expect.any(Error), expect.any(Error), expect.any(Error)],
+      isLoading: false,
       status: 'error',
     });
 
@@ -459,6 +465,7 @@ describe('useTraceMeta', () => {
     expect(result.current).toEqual({
       data: undefined,
       errors: [],
+      isLoading: true,
       status: 'pending',
     });
 
@@ -478,6 +485,7 @@ describe('useTraceMeta', () => {
         },
       },
       errors: [expect.any(Error)],
+      isLoading: false,
       status: 'success',
     });
 

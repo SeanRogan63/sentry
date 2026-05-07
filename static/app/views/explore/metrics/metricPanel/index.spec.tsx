@@ -5,8 +5,9 @@ import {
   initializeTraceMetricsTest,
 } from 'sentry-fixture/tracemetrics';
 
-import {render, screen, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
 
+import {MetricDetails} from 'sentry/views/explore/metrics/metricInfoTabs/metricDetails';
 import {MetricsSamplesTable} from 'sentry/views/explore/metrics/metricInfoTabs/metricsSamplesTable';
 import {MetricPanel} from 'sentry/views/explore/metrics/metricPanel';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
@@ -240,5 +241,39 @@ describe('MetricPanel', () => {
 
     expect(await screen.findByText(project.slug)).toBeInTheDocument();
     expect(screen.getAllByText(/ago$/).length).toBeGreaterThan(0);
+  });
+
+  it('fetches trace meta for expanded samples with the row timestamp', async () => {
+    const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
+    const row = metricFixtures.detailedFixtures[0]!;
+    const timestamp = new Date(row.timestamp).getTime() / 1000;
+    const traceMetaMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/${organization.slug}/events-trace-meta/${row.trace}/`,
+      match: [MockApiClient.matchData({timestamp})],
+      body: {
+        errors: 0,
+        performance_issues: 0,
+        projects: 1,
+        transactions: 1,
+        transaction_child_count_map: [],
+        span_count: 0,
+        span_count_map: {},
+      },
+    });
+
+    render(
+      <table>
+        <tbody>
+          <MetricDetails dataRow={row} ref={{current: null}} showTelemetry />
+        </tbody>
+      </table>,
+      {
+        organization,
+        additionalWrapper: createWrapper({queryParams, traceMetric}),
+      }
+    );
+
+    await waitFor(() => expect(traceMetaMock).toHaveBeenCalledTimes(1));
   });
 });
