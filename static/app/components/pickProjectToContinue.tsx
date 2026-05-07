@@ -2,7 +2,8 @@ import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor, LocationDescriptorObject} from 'history';
 
-import {openModal} from 'sentry/actionCreators/modal';
+import {useModal} from '@sentry/scraps/modal';
+
 import {ContextPickerModalContainer as ContextPickerModal} from 'sentry/components/contextPickerModal';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -32,6 +33,8 @@ export function PickProjectToContinue({
   projects,
   allowAllProjectsSelection = false,
 }: Props) {
+  const {openModal} = useModal();
+
   const navigate = useNavigate();
   const nextPathQuery = nextPath.query;
   let navigating = false;
