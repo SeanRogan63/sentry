@@ -1,39 +1,37 @@
-import Reflux from 'reflux';
-
-import {TrialRequestedActions} from 'getsentry/actions/trialRequestedActions';
+import {createStore} from 'sentry/stores/createStore';
+import type {StrictStoreDefinition} from 'sentry/stores/types';
 
 type State = {
   requested: boolean;
 };
 
-type TrialRequestedStoreInterface = {
-  getTrialRequstedState: () => State['requested'];
-};
+interface TrialRequestedStoreInterface extends StrictStoreDefinition<State> {
+  clearNotification(): void;
+  requested(): void;
+}
 
-const storeConfig: Reflux.StoreDefinition & TrialRequestedStoreInterface = {
+const storeConfig: TrialRequestedStoreInterface = {
   state: {
     requested: false,
-  } as State,
-
-  init() {
-    this.listenTo(TrialRequestedActions.requested, this.onRequested);
-    this.listenTo(TrialRequestedActions.clearNotification, this.onClearNotification);
   },
 
-  onRequested() {
+  init() {
+    this.state = {requested: false};
+  },
+
+  requested() {
     this.state = {...this.state, requested: true};
     this.trigger(this.state);
   },
 
-  onClearNotification() {
+  clearNotification() {
     this.state = {...this.state, requested: false};
     this.trigger(this.state);
   },
 
-  getTrialRequstedState() {
-    return this.state.requested;
+  getState() {
+    return this.state;
   },
 };
 
-export const TrialRequestedStore = Reflux.createStore(storeConfig) as Reflux.Store &
-  TrialRequestedStoreInterface;
+export const TrialRequestedStore = createStore(storeConfig);

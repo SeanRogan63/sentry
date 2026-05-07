@@ -209,7 +209,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     super.componentDidMount();
     const {organization} = this.props;
     const {project} = this.state;
-    // SearchBar gets its tags from Reflux.
     fetchOrganizationTags(this.api, organization.slug, [project.id]);
   }
 

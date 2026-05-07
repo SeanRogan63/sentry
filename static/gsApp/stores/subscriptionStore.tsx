@@ -1,6 +1,5 @@
-import {createStore} from 'reflux';
-
 import {Client} from 'sentry/api';
+import {createStore} from 'sentry/stores/createStore';
 import type {StrictStoreDefinition} from 'sentry/stores/types';
 
 import type {Subscription} from 'getsentry/types';

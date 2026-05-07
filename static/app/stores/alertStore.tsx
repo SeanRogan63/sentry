@@ -1,5 +1,4 @@
-import {createStore} from 'reflux';
-
+import {createStore} from 'sentry/stores/createStore';
 import {defined} from 'sentry/utils';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import type {AlertVariant} from 'sentry/utils/theme';
@@ -33,9 +32,6 @@ const storeConfig: AlertStoreDefinition = {
   count: 0,
 
   init() {
-    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
-    // listeners due to their leaky nature in tests.
-
     this.state = [];
     this.count = 0;
   },
@@ -78,9 +74,8 @@ const storeConfig: AlertStoreDefinition = {
 
     alert.key = this.count++;
 
-    // intentionally recreate array via concat because of Reflux
-    // "bug" where React components are given same reference to tracked
-    // data objects, and don't *see* that values have changed
+    // intentionally recreate array via concat so React components
+    // see a new reference and re-render
     this.state = this.state.concat([alert]);
     this.trigger(this.state);
   },

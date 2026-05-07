@@ -1,6 +1,6 @@
 import isEqual from 'lodash/isEqual';
-import {createStore} from 'reflux';
 
+import {createStore} from 'sentry/stores/createStore';
 import type {Group} from 'sentry/types/group';
 
 import type {StrictStoreDefinition} from './types';

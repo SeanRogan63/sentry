@@ -1,6 +1,5 @@
-import type {StoreDefinition} from 'reflux';
-import {createStore} from 'reflux';
-
+import {createStore} from 'sentry/stores/createStore';
+import type {StoreDefinition} from 'sentry/stores/types';
 import type {HookName, Hooks} from 'sentry/types/hooks';
 
 interface Internals {
@@ -26,9 +25,6 @@ const storeConfig: HookStoreDefinition = {
   hookCallbacks: {},
 
   init() {
-    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
-    // listeners due to their leaky nature in tests.
-
     this.hooks = {};
     this.hookCallbacks = {}; // For persisting hook pure functions / useX react hooks remotely.
   },

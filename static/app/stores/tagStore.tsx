@@ -1,5 +1,4 @@
-import {createStore} from 'reflux';
-
+import {createStore} from 'sentry/stores/createStore';
 import type {Tag, TagCollection} from 'sentry/types/group';
 
 import type {StrictStoreDefinition} from './types';
@@ -13,8 +12,6 @@ const storeConfig: TagStoreDefinition = {
   state: {},
 
   init() {
-    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
-    // listeners due to their leaky nature in tests.
     this.state = {};
   },
 

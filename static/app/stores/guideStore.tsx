@@ -1,8 +1,7 @@
-import {createStore} from 'reflux';
-
 import {getGuidesContent} from 'sentry/components/assistant/getGuidesContent';
 import type {Guide, GuidesServerData} from 'sentry/components/assistant/types';
 import {ConfigStore} from 'sentry/stores/configStore';
+import {createStore} from 'sentry/stores/createStore';
 import {HookStore} from 'sentry/stores/hookStore';
 import {ModalStore} from 'sentry/stores/modalStore';
 import type {Organization} from 'sentry/types/organization';
@@ -102,9 +101,6 @@ const storeConfig: GuideStoreDefinition = {
   modalStoreListener: null,
 
   init() {
-    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
-    // listeners due to their leaky nature in tests.
-
     this.state = {...defaultState, forceShow: isForceEnabled()};
 
     window.addEventListener('load', this.onURLChange, false);

@@ -1,6 +1,5 @@
-import {createStore} from 'reflux';
-
 import {getDefaultPageFilterSelection} from 'sentry/components/pageFilters/constants';
+import {createStore} from 'sentry/stores/createStore';
 import type {StrictStoreDefinition} from 'sentry/stores/types';
 import type {PageFilters, PinnedPageFilter} from 'sentry/types/core';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
@@ -80,9 +79,6 @@ const storeConfig: PageFiltersStoreDefinition = {
   },
 
   init() {
-    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
-    // listeners due to their leaky nature in tests.
-
     this.reset(this.state.selection);
   },
 

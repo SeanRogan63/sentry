@@ -8,7 +8,7 @@
 - **Framework**: React 19
 - **Build Tool**: Rspack (Webpack alternative)
 - **Package management**: pnpm
-- **State Management**: Reflux, React Query (TanStack Query)
+- **State Management**: Legacy stores (see `stores/createStore.ts`), React Query (TanStack Query)
 - **Styling**: Emotion (CSS-in-JS), Less
 - **Testing**: Jest, React Testing Library
 
@@ -93,7 +93,7 @@ Note that `X-Hits` and `X-Max-Hits` are already parsed to `number | undefined` â
 
 ## General Frontend Rules
 
-1. NO new Reflux stores
+1. NO new legacy stores (see `stores/createStore.ts`)
 2. NO class components
 3. NO CSS files (use [core components](./app/components/core/) or Emotion in edge cases)
 4. ALWAYS use TypeScript

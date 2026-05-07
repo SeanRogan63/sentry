@@ -1,6 +1,5 @@
-import {createStore} from 'reflux';
-
 import {ORGANIZATION_FETCH_ERROR_TYPES} from 'sentry/constants';
+import {createStore} from 'sentry/stores/createStore';
 import type {Organization} from 'sentry/types/organization';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 
@@ -33,9 +32,6 @@ const storeConfig: OrganizationStoreDefinition = {
     errorType: null,
   },
   init() {
-    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
-    // listeners due to their leaky nature in tests.
-
     this.reset();
   },
 

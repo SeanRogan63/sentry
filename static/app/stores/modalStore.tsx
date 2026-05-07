@@ -1,7 +1,7 @@
 import type {FocusTrap} from 'focus-trap';
-import {createStore} from 'reflux';
 
 import type {ModalOptions, ModalRenderProps} from 'sentry/actionCreators/modal';
+import {createStore} from 'sentry/stores/createStore';
 
 import type {StrictStoreDefinition} from './types';
 
@@ -25,9 +25,6 @@ interface ModalStoreDefinition extends StrictStoreDefinition<State> {
 const storeConfig: ModalStoreDefinition = {
   state: {renderer: null, options: {}},
   init() {
-    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
-    // listeners due to their leaky nature in tests.
-
     this.reset();
   },
 

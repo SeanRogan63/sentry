@@ -1,4 +1,4 @@
-import {createStore} from 'reflux';
+import {createStore} from 'sentry/stores/createStore';
 
 import type {StrictStoreDefinition} from './types';
 
@@ -25,10 +25,7 @@ export enum OnboardingDrawerKey {
 const storeConfig: OnboardingDrawerStoreDefinition = {
   state: '',
 
-  init() {
-    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
-    // listeners due to their leaky nature in tests.
-  },
+  init() {},
 
   open(panel: OnboardingDrawerKey) {
     this.state = panel;

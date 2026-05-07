@@ -1,7 +1,6 @@
-import {createStore} from 'reflux';
-
 import type {Indicator} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
+import {createStore} from 'sentry/stores/createStore';
 import {IndicatorStore} from 'sentry/stores/indicatorStore';
 import type {Activity, BaseGroup, Group, GroupStats} from 'sentry/types/group';
 import {toArray} from 'sentry/utils/array/toArray';
@@ -120,9 +119,6 @@ const storeConfig: GroupStoreDefinition = {
   statuses: {},
 
   init() {
-    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
-    // listeners due to their leaky nature in tests.
-
     this.reset();
   },
 

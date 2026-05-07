@@ -1,5 +1,4 @@
-import {createStore} from 'reflux';
-
+import {createStore} from 'sentry/stores/createStore';
 import type {Organization} from 'sentry/types/organization';
 
 import type {StrictStoreDefinition} from './types';
@@ -24,9 +23,6 @@ const storeConfig: OrganizationsStoreDefinition = {
   state: {organizations: [], loaded: false},
 
   init() {
-    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
-    // listeners due to their leaky nature in tests.
-
     this.state = {organizations: [], loaded: false};
   },
 

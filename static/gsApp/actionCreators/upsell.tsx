@@ -11,8 +11,8 @@ import type {Organization} from 'sentry/types/organization';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 
-import {TrialRequestedActions} from 'getsentry/actions/trialRequestedActions';
 import type {EventType} from 'getsentry/components/addEventsCTA';
+import {TrialRequestedStore} from 'getsentry/stores/trialRequestedStore';
 
 export async function sendReplayOnboardRequest({
   api,
@@ -83,7 +83,7 @@ export function sendTrialRequest({
     data: {},
     handleSuccess: () => {
       // show confirmation through trialStartedSidebarItem
-      TrialRequestedActions.requested();
+      TrialRequestedStore.requested();
       handleSuccess?.();
     },
     ...rest,

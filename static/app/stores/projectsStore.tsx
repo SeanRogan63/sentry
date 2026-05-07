@@ -1,8 +1,7 @@
-import {createStore} from 'reflux';
-
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {Client} from 'sentry/api';
 import {clearQueryCache} from 'sentry/appQueryClient';
+import {createStore} from 'sentry/stores/createStore';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 
@@ -45,9 +44,6 @@ const storeConfig: ProjectsStoreDefinition = {
   },
 
   init() {
-    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
-    // listeners due to their leaky nature in tests.
-
     this.reset();
   },
 

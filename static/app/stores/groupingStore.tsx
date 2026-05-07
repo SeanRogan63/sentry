@@ -1,5 +1,4 @@
 import pick from 'lodash/pick';
-import {createStore} from 'reflux';
 
 import {
   addErrorMessage,
@@ -7,6 +6,7 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
+import {createStore} from 'sentry/stores/createStore';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -124,9 +124,6 @@ const storeConfig: GroupingStoreDefinition = {
   api: new Client(),
 
   init() {
-    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
-    // listeners due to their leaky nature in tests.
-
     this.state = this.getInitialState();
   },
 

@@ -12,7 +12,6 @@ import type {Organization} from 'sentry/types/organization';
 import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
 import {withApi} from 'sentry/utils/withApi';
 
-import {TrialRequestedActions} from 'getsentry/actions/trialRequestedActions';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {TrialRequestedStore} from 'getsentry/stores/trialRequestedStore';
 import type {Subscription} from 'getsentry/types';
@@ -32,12 +31,12 @@ function TrialStartedSidebarItem({subscription, organization, children}: Props) 
     !!hasJustStartedPlanTrial(subscription)
   );
   const [trialRequested, setTrialRequested] = useState(
-    TrialRequestedStore.getTrialRequstedState()
+    () => TrialRequestedStore.getState().requested
   );
 
   useEffect(() => {
     const unsubscribe = TrialRequestedStore.listen(
-      () => setTrialRequested(TrialRequestedStore.getTrialRequstedState()),
+      () => setTrialRequested(TrialRequestedStore.getState().requested),
       undefined
     );
     return () => {
@@ -47,7 +46,7 @@ function TrialStartedSidebarItem({subscription, organization, children}: Props) 
 
   const dismissNotification = () => {
     SubscriptionStore.clearStartedTrial(organization.slug);
-    TrialRequestedActions.clearNotification();
+    TrialRequestedStore.clearNotification();
   };
   // Dismiss trial started when user clicks outside of trial requested or started hovercard
   const hovercardBodyRef = useRef<HTMLDivElement>(null);
