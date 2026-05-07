@@ -287,7 +287,7 @@ describe('MetricPanel', () => {
         data: undefined,
         isError: false,
         isPending: false,
-      } as ReturnType<typeof useMetricTraceDetailModule.useMetricTraceDetail>);
+      } as unknown as ReturnType<typeof useMetricTraceDetailModule.useMetricTraceDetail>);
 
     expect(() =>
       render(
