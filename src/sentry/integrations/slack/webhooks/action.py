@@ -176,7 +176,7 @@ def _is_message(data: Mapping[str, Any]) -> bool:
 
 @cell_silo_endpoint
 class SlackActionEndpoint(Endpoint):
-    owner = ApiOwner.ECOSYSTEM
+    owner = ApiOwner.MESSAGING_INTEGRATIONS
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }

@@ -25,7 +25,7 @@ from sentry.models.repository import Repository
 @cell_silo_endpoint
 @extend_schema(tags=["Organizations"])
 class OrganizationRepositoryCommitsEndpoint(OrganizationEndpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.CODING_WORKFLOWS
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
