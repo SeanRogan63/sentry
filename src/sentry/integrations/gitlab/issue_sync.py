@@ -7,7 +7,11 @@ from urllib.parse import quote
 
 from sentry import features
 from sentry.integrations.gitlab.types import GitLabIssueAction, GitLabIssueStatus
-from sentry.integrations.mixins.issues import IssueSyncIntegration, ResolveSyncAction
+from sentry.integrations.mixins.issues import (
+    IntegrationSyncTargetNotFound,
+    IssueSyncIntegration,
+    ResolveSyncAction,
+)
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
@@ -18,6 +22,11 @@ from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 
 logger = logging.getLogger("sentry.integrations.gitlab.issue_sync")
+
+
+def _add_lifecycle_extras(lifecycle: Any, extras: Mapping[str, Any]) -> None:
+    if lifecycle is not None and hasattr(lifecycle, "add_extras"):
+        lifecycle.add_extras(extras)
 
 
 class GitlabIssueSyncSpec(IssueSyncIntegration):
@@ -70,20 +79,24 @@ class GitlabIssueSyncSpec(IssueSyncIntegration):
         If assign=True, we're assigning the issue. Otherwise, deassign.
         """
         client = self.get_client()
+        lifecycle = kwargs.get("lifecycle")
 
         project_id, issue_id = self.split_external_issue_key(external_issue.key)
+        log_context: dict[str, Any] = {
+            "provider": self.model.provider,
+            "integration_id": external_issue.integration_id,
+            "external_issue_key": external_issue.key,
+            "external_issue_id": external_issue.id,
+            "project_path": project_id,
+            "issue_iid": issue_id,
+            "assign": assign,
+            "user_id": user.id if user else None,
+        }
+        _add_lifecycle_extras(lifecycle, log_context)
 
         if not project_id or not issue_id:
-            logger.error(
-                "assignee-outbound.invalid-key",
-                extra={
-                    "provider": self.model.provider,
-                    "integration_id": external_issue.integration_id,
-                    "external_issue_key": external_issue.key,
-                    "external_issue_id": external_issue.id,
-                },
-            )
-            return
+            logger.warning("assignee-outbound.invalid-key", extra=log_context)
+            raise IntegrationSyncTargetNotFound("Invalid GitLab issue key")
 
         gitlab_user_id = None
 
@@ -98,57 +111,78 @@ class GitlabIssueSyncSpec(IssueSyncIntegration):
                 organization=external_issue.organization,
             ).first()
             if not external_actor:
-                logger.info(
-                    "assignee-outbound.external-actor-not-found",
-                    extra={
-                        "provider": self.model.provider,
-                        "integration_id": external_issue.integration_id,
-                        "user_id": user.id,
-                    },
+                logger.info("assignee-outbound.external-actor-not-found", extra=log_context)
+                raise IntegrationSyncTargetNotFound("No matching GitLab external actor found")
+
+            log_context.update(
+                {
+                    "external_actor_id": external_actor.id,
+                    "external_actor_name": external_actor.external_name,
+                    "external_actor_external_id": external_actor.external_id,
+                }
+            )
+            _add_lifecycle_extras(lifecycle, log_context)
+
+            if external_actor.external_id:
+                try:
+                    gitlab_user_id = int(external_actor.external_id)
+                except ValueError:
+                    logger.warning("assignee-outbound.invalid-external-id", extra=log_context)
+                    raise IntegrationSyncTargetNotFound("Invalid GitLab external actor ID")
+
+                log_context.update(
+                    {
+                        "assignee_resolution_method": "external_id",
+                        "resolved_gitlab_user_id": gitlab_user_id,
+                    }
                 )
-                return
+                logger.info("assignee-outbound.gitlab-user-found", extra=log_context)
+                _add_lifecycle_extras(lifecycle, log_context)
 
             # Strip the @ from the username stored in external_name
-            gitlab_username = external_actor.external_name.lstrip("@")
+            if gitlab_user_id is None:
+                gitlab_username = external_actor.external_name.lstrip("@")
 
-            # Search for the GitLab user by username to get their user ID
-            try:
-                users = client.search_users(gitlab_username)
-                if not users or len(users) == 0:
-                    logger.warning(
-                        "assignee-outbound.gitlab-user-not-found",
-                        extra={
-                            "provider": self.model.provider,
-                            "integration_id": external_issue.integration_id,
-                            "gitlab_username": gitlab_username,
-                        },
-                    )
-                    return
+                # Search for the GitLab user by username to get their user ID
+                try:
+                    users = client.search_users(gitlab_username) or []
+                except ApiError as e:
+                    log_context["error"] = str(e)
+                    logger.warning("assignee-outbound.gitlab-user-search-failed", extra=log_context)
+                    _add_lifecycle_extras(lifecycle, log_context)
+                    raise IntegrationSyncTargetNotFound("GitLab user search failed")
 
-                # Take the first matching user (exact username match)
-                gitlab_user = users[0]
+                usernames = [
+                    found_user.get("username")
+                    for found_user in users[:5]
+                    if found_user.get("username")
+                ]
+                log_context.update(
+                    {
+                        "assignee_resolution_method": "username_search",
+                        "gitlab_search_result_count": len(users),
+                        "gitlab_search_usernames": usernames,
+                    }
+                )
+
+                gitlab_user = next(
+                    (
+                        found_user
+                        for found_user in users
+                        if found_user.get("username", "").lower() == gitlab_username.lower()
+                    ),
+                    None,
+                )
+                if gitlab_user is None:
+                    logger.warning("assignee-outbound.gitlab-user-not-found", extra=log_context)
+                    _add_lifecycle_extras(lifecycle, log_context)
+                    raise IntegrationSyncTargetNotFound("No matching GitLab user found")
+
                 gitlab_user_id = gitlab_user["id"]
+                log_context["resolved_gitlab_user_id"] = gitlab_user_id
 
-                logger.info(
-                    "assignee-outbound.gitlab-user-found",
-                    extra={
-                        "provider": self.model.provider,
-                        "integration_id": external_issue.integration_id,
-                        "gitlab_username": gitlab_username,
-                        "gitlab_user_id": gitlab_user_id,
-                    },
-                )
-            except ApiError as e:
-                logger.warning(
-                    "assignee-outbound.gitlab-user-search-failed",
-                    extra={
-                        "provider": self.model.provider,
-                        "integration_id": external_issue.integration_id,
-                        "gitlab_username": gitlab_username,
-                        "error": str(e),
-                    },
-                )
-                return
+                logger.info("assignee-outbound.gitlab-user-found", extra=log_context)
+                _add_lifecycle_extras(lifecycle, log_context)
 
         # Update GitLab issue assignees
         try:

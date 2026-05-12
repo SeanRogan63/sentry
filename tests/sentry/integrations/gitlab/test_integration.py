@@ -14,6 +14,7 @@ from fixtures.gitlab import GET_COMMIT_RESPONSE, GitLabTestCase
 from sentry.integrations.gitlab.client import GitLabApiClient, GitLabSetupApiClient
 from sentry.integrations.gitlab.constants import GITLAB_WEBHOOK_VERSION, GITLAB_WEBHOOK_VERSION_KEY
 from sentry.integrations.gitlab.integration import GitlabIntegration, GitlabIntegrationProvider
+from sentry.integrations.mixins.issues import IntegrationSyncTargetNotFound
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -178,7 +179,7 @@ class GitlabIssueSyncTest(GitLabTestCase):
         self,
         user_email: str = "foo@example.com",
         external_name: str = "@gitlab_user",
-        external_id: str = "123",
+        external_id: str | None = None,
         issue_key: str = "example.gitlab.com/group-x:cool-group/sentry#45",
         create_external_user: bool = True,
     ) -> tuple:
@@ -300,6 +301,32 @@ class GitlabIssueSyncTest(GitLabTestCase):
 
     @responses.activate
     @with_feature("organizations:integrations-gitlab-project-management")
+    def test_sync_assignee_outbound_uses_external_id(self) -> None:
+        """Test assigning a GitLab issue using the mapped GitLab user ID."""
+        user, installation, external_issue, _, _ = self._setup_assignee_sync_test(external_id="123")
+
+        responses.add(
+            responses.PUT,
+            "https://example.gitlab.com/api/v4/projects/cool-group%2Fsentry/issues/45",
+            json={"assignees": [{"id": 123}]},
+            status=200,
+        )
+
+        responses.calls.reset()
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            installation.sync_assignee_outbound(external_issue, user, assign=True)
+
+        assert len(responses.calls) == 1
+        request = responses.calls[0].request
+        assert (
+            "https://example.gitlab.com/api/v4/projects/cool-group%2Fsentry/issues/45"
+            == request.url
+        )
+        assert orjson.loads(request.body) == {"assignee_ids": [123]}
+
+    @responses.activate
+    @with_feature("organizations:integrations-gitlab-project-management")
     def test_sync_assignee_outbound(self) -> None:
         """Test assigning a GitLab issue to a user with linked GitLab account"""
         user, installation, external_issue, _, _ = self._setup_assignee_sync_test()
@@ -334,6 +361,38 @@ class GitlabIssueSyncTest(GitLabTestCase):
             "https://example.gitlab.com/api/v4/projects/cool-group%2Fsentry/issues/45"
             == request.url
         )
+        assert orjson.loads(request.body) == {"assignee_ids": [123]}
+
+    @responses.activate
+    @with_feature("organizations:integrations-gitlab-project-management")
+    def test_sync_assignee_outbound_requires_exact_username_match(self) -> None:
+        user, installation, external_issue, _, _ = self._setup_assignee_sync_test(
+            external_name="@first.last"
+        )
+
+        responses.add(
+            responses.GET,
+            "https://example.gitlab.com/api/v4/users?username=first.last",
+            json=[
+                {"id": 999, "username": "first", "name": "Wrong User"},
+                {"id": 123, "username": "first.last", "name": "GitLab User"},
+            ],
+            status=200,
+        )
+        responses.add(
+            responses.PUT,
+            "https://example.gitlab.com/api/v4/projects/cool-group%2Fsentry/issues/45",
+            json={"assignees": [{"id": 123}]},
+            status=200,
+        )
+
+        responses.calls.reset()
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            installation.sync_assignee_outbound(external_issue, user, assign=True)
+
+        assert len(responses.calls) == 2
+        request = responses.calls[1].request
         assert orjson.loads(request.body) == {"assignee_ids": [123]}
 
     @responses.activate
@@ -406,7 +465,8 @@ class GitlabIssueSyncTest(GitLabTestCase):
         responses.calls.reset()
 
         with assume_test_silo_mode(SiloMode.CELL):
-            installation.sync_assignee_outbound(external_issue, user, assign=True)
+            with pytest.raises(IntegrationSyncTargetNotFound):
+                installation.sync_assignee_outbound(external_issue, user, assign=True)
 
         # Should not make any API calls
         assert len(responses.calls) == 0
@@ -422,7 +482,8 @@ class GitlabIssueSyncTest(GitLabTestCase):
         responses.calls.reset()
 
         with assume_test_silo_mode(SiloMode.CELL):
-            installation.sync_assignee_outbound(external_issue, user, assign=True)
+            with pytest.raises(IntegrationSyncTargetNotFound):
+                installation.sync_assignee_outbound(external_issue, user, assign=True)
 
         # Should not make any API calls
         assert len(responses.calls) == 0
@@ -483,9 +544,31 @@ class GitlabIssueSyncTest(GitLabTestCase):
         responses.calls.reset()
 
         with assume_test_silo_mode(SiloMode.CELL):
-            installation.sync_assignee_outbound(external_issue, user, assign=True)
+            with pytest.raises(IntegrationSyncTargetNotFound):
+                installation.sync_assignee_outbound(external_issue, user, assign=True)
 
         # Should only call user search, not issue update
+        assert len(responses.calls) == 1
+        assert "users?username=gitlab_user" in responses.calls[0].request.url
+
+    @responses.activate
+    @with_feature("organizations:integrations-gitlab-project-management")
+    def test_sync_assignee_outbound_user_search_failed(self) -> None:
+        user, installation, external_issue, _, _ = self._setup_assignee_sync_test()
+
+        responses.add(
+            responses.GET,
+            "https://example.gitlab.com/api/v4/users?username=gitlab_user",
+            json={"message": "Internal server error"},
+            status=500,
+        )
+
+        responses.calls.reset()
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            with pytest.raises(IntegrationSyncTargetNotFound):
+                installation.sync_assignee_outbound(external_issue, user, assign=True)
+
         assert len(responses.calls) == 1
         assert "users?username=gitlab_user" in responses.calls[0].request.url
 

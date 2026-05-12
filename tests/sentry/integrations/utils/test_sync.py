@@ -378,6 +378,59 @@ class TestSyncAssigneeInboundByExternalActor(TestCase):
         assert updated_assignee.email == "test@example.com"
         mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None, False, None)
 
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_assignment_with_external_actor_external_id(
+        self,
+        mock_record_event: mock.MagicMock,
+    ) -> None:
+        """Test assigning a group to a user via external actor ID before username."""
+        gitlab_integration = self.create_integration(
+            organization=self.organization,
+            external_id="gitlab:org",
+            provider="gitlab",
+            oi_params={
+                "config": {
+                    "sync_comments": True,
+                    "sync_status_forward": True,
+                    "sync_status_reverse": True,
+                    "sync_forward_assignment": True,
+                    "sync_reverse_assignment": True,
+                }
+            },
+        )
+        external_issue = self.create_integration_external_issue(
+            group=self.group,
+            key="example.gitlab.com/group-x:cool-group/sentry#23",
+            integration=gitlab_integration,
+        )
+
+        self.create_external_user(
+            user=self.test_user,
+            external_name="@different.username",
+            external_id="123",
+            provider=ExternalProviders.GITLAB.value,
+            integration=gitlab_integration,
+        )
+
+        with self.feature(
+            [
+                "organizations:integrations-issue-sync",
+                "organizations:integrations-gitlab-project-management",
+            ]
+        ):
+            sync_group_assignee_inbound_by_external_actor(
+                integration=gitlab_integration,
+                external_user_name="@first.last",
+                external_user_id=123,
+                external_issue_key=external_issue.key,
+                assign=True,
+            )
+
+        updated_assignee = self.group.get_assignee()
+        assert updated_assignee is not None
+        assert updated_assignee.id == self.test_user.id
+        mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None, False, None)
+
     @mock.patch("sentry.integrations.utils.sync.where_should_sync")
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_assign_with_multiple_groups(
@@ -465,10 +518,16 @@ class TestSyncAssigneeInboundByExternalActor(TestCase):
             extra={
                 "integration_id": self.example_integration.id,
                 "external_user_name": "unknownuser",
+                "external_user_id": None,
                 "issue_key": external_issue.key,
                 "method": AssigneeInboundSyncMethod.EXTERNAL_ACTOR.value,
                 "assign": True,
+                "affected_group_ids": [self.group.id],
+                "match_method": "external_name",
+                "external_actor_count": 0,
+                "matched_user_ids": [],
                 "user_ids": [],
+                "assigned_group_ids": [],
                 "groups_assigned_count": 0,
                 "affected_groups_count": 1,
             },
@@ -510,10 +569,16 @@ class TestSyncAssigneeInboundByExternalActor(TestCase):
             extra={
                 "integration_id": self.example_integration.id,
                 "external_user_name": "outsider",
+                "external_user_id": None,
                 "issue_key": external_issue.key,
                 "method": AssigneeInboundSyncMethod.EXTERNAL_ACTOR.value,
                 "assign": True,
+                "affected_group_ids": [self.group.id],
+                "match_method": "external_name",
+                "external_actor_count": 1,
+                "matched_user_ids": [other_user.id],
                 "user_ids": [other_user.id],
+                "assigned_group_ids": [],
                 "groups_assigned_count": 0,
                 "affected_groups_count": 1,
             },
